@@ -1,0 +1,33 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{E0AD49E3-6CD1-4F33-B119-BBF1E2DA6D2C}"
+	ProjectSection(SolutionItems) = preProject
+		compose.yaml = compose.yaml
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VideoProcessing", "VideoProcessing\VideoProcessing.csproj", "{1CC2F947-958A-40D5-B0CA-5E3813A9FA53}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Web", "Web\Web.csproj", "{F0869B5B-C3B0-47BA-9FA5-EDEA01499F42}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MotionCLI", "MotionCLI\MotionCLI.csproj", "{1749B15F-615B-47F4-A120-E808E118CA8A}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{1CC2F947-958A-40D5-B0CA-5E3813A9FA53}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1CC2F947-958A-40D5-B0CA-5E3813A9FA53}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1CC2F947-958A-40D5-B0CA-5E3813A9FA53}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1CC2F947-958A-40D5-B0CA-5E3813A9FA53}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F0869B5B-C3B0-47BA-9FA5-EDEA01499F42}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F0869B5B-C3B0-47BA-9FA5-EDEA01499F42}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F0869B5B-C3B0-47BA-9FA5-EDEA01499F42}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F0869B5B-C3B0-47BA-9FA5-EDEA01499F42}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1749B15F-615B-47F4-A120-E808E118CA8A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1749B15F-615B-47F4-A120-E808E118CA8A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1749B15F-615B-47F4-A120-E808E118CA8A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1749B15F-615B-47F4-A120-E808E118CA8A}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal

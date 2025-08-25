@@ -1,0 +1,19 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net9.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <Folder Include="Packages\" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Emgu.CV" Version="4.11.0.5746" />
+      <PackageReference Include="Emgu.CV.runtime.windows.cuda" Version="4.11.0.5746" />
+      <PackageReference Include="LiteDB" Version="5.0.21" />
+    </ItemGroup>
+
+</Project>
