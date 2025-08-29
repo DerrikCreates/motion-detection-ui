@@ -1,0 +1,87 @@
+﻿@page "/"
+@using System.ComponentModel.DataAnnotations
+@using Emgu.CV
+@using LiteDB
+@using MotionHistory = MotionHistory
+@rendermode InteractiveServer
+@inject ILiteCollection<StreamConfig> StreamConfigDb;
+@inject ILiteCollection<MotionHistory> HistoryDb;
+<PageTitle>Home</PageTitle>
+
+<h1>Hello, world!</h1>
+
+Welcome to your new app.
+
+<button @onclick="Test"></button>
+<EditForm Model="@Model" OnValidSubmit="OnValidSubmit" FormName="StartMotionDetection">
+    <DataAnnotationsValidator/>
+    <ValidationSummary/>
+    <div class="mb-3">
+        <label>Stream Name</label>
+        <InputText class="form-control" @bind-Value="Model.StreamName"/>
+    </div>
+    <div class="mb-3">
+        <label>Stream URL</label>
+        <InputText class="form-control" @bind-Value="Model.StreamUrl"/>
+    </div>
+    <div class="mb-3">
+        <label>Frames to skip</label>
+        <InputNumber class="form-control" @bind-Value="Model.FramesToSkip"/>
+    </div>
+    <div class="mb-3">
+        <label>MOG History</label>
+        <InputNumber class="form-control" @bind-Value="Model.MOGHistory"/>
+    </div>
+    <div class="mb-3">
+        <label>MOG Threshold</label>
+        <InputNumber class="form-control" @bind-Value="Model.MOGThreshold"/>
+    </div>
+    <div class="mb-3">
+        <label>Threshold Min</label>
+        <InputNumber class="form-control" @bind-Value="Model.ThresholdMin"/>
+    </div>
+    <div class="mb-3">
+        <label>Threshold Max</label>
+        <InputNumber class="form-control" @bind-Value="Model.ThresholdMax"/>
+    </div>
+    <button type="submit">Submit</button>
+</EditForm>
+
+@code{
+
+
+    [SupplyParameterFromForm] private StreamConfig? Model { get; set; } = new();
+
+    private void Test()
+    {
+    }
+
+    public class StreamConfig
+    {
+        [Required] public string StreamName { get; set; }
+        [Required] public string StreamUrl { get; set; } = "rtsp://100.125.94.97:8554/gerbil-top";
+        [Required] public int FramesToSkip { get; set; } = 60;
+        [Required] public int MOGHistory { get; set; } = 100;
+
+        [Required] public int MOGThreshold { get; set; } = 100;
+        [Required] public int ThresholdMin { get; set; } = 220;
+        public int ThresholdMax { get; set; } = 255;
+    }
+
+    private void OnValidSubmit()
+    {
+        StreamConfigDb.Upsert(Model);
+
+
+        Task.Run(() =>
+        {
+            var capture = new VideoCapture(Model.StreamUrl, VideoCapture.API.Ffmpeg);
+            return VideoProcessing.StreamMotionDetectionCUDA(capture, Model.StreamName, Model.FramesToSkip, new CancellationToken(), Model.MOGHistory, Model.MOGThreshold, Model.ThresholdMin, Model.ThresholdMax,HistoryDb);
+        });
+    }
+
+}
+    
+    
+    
+    

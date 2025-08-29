@@ -118,12 +118,12 @@ public class VideoProcessing
         }
     }
 
+    
+    //TODO: make this take the StreamConfig type for params since im already using it for the db
     public static async Task StreamMotionDetectionCUDA(VideoCapture capture, string streamName, int skipFrames,
         CancellationToken cancellationToken, int mogHistory = 100, int mogThreshold = 100, int threshMin = 100,
-        int threshMax = 255)
+        int threshMax = 255, ILiteCollection<MotionHistory>? collection = null)
     {
-        
-        
         Console.WriteLine("Starting CUDA motion detection");
         if (Streams.TryGetValue(streamName, out var value))
         {
@@ -140,7 +140,6 @@ public class VideoProcessing
         Stopwatch sw = new();
         using var subtractor = new CudaBackgroundSubtractorMOG2(history: mogHistory, varThreshold: mogThreshold);
 
-        var motionCollection = motionDB.GetCollection<MotionHistory>();
 
         using Mat currentFrame = new();
         using Mat mask = new();
@@ -219,10 +218,11 @@ public class VideoProcessing
             var image = CvInvoke.Imencode(".jpg", debug);
             var mean = CvInvoke.Mean(threshold);
 
-            motionCollection.Insert(new MotionHistory()
+            collection?.Insert(new MotionHistory()
             {
                 MotionAmount = mean.V0, MotionTime = DateTime.UtcNow, StreamName = streamName
             });
+
 
             sw.Stop();
             if (Feedback.TryGetValue(streamName, out var feedback))

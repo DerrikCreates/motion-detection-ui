@@ -1,0 +1,13 @@
+@page "/StreamHistory"
+@using LiteDB
+@inject ILiteCollection<MotionHistory> MotionHistoryDb;
+@rendermode @(new InteractiveServerRenderMode(false))
+<h3>StreamHistory</h3>
+
+
+@code {
+    [Parameter, SupplyParameterFromQuery] public string? StreamName { get; set; }
+    [Parameter, SupplyParameterFromQuery] public long? ViewSize { get; set; }
+
+
+}

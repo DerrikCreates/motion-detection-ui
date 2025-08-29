@@ -1,0 +1,80 @@
+@page "/RequestVideo"
+@using System.Globalization
+@using System.Web
+@using LiteDB
+@rendermode InteractiveServer
+@inject ILiteCollection<Home.StreamConfig> StreamConfigDb;
+
+<p>@start</p>
+<p>@src</p>
+@* <iframe src="@src" width="640" height="360" frameborder="0" allow="autoplay; fullscreen"></iframe> *@
+
+
+<p> Total Process Time: @TotalProcessTime</p>
+<button @onclick="ForceRefresh">Force refresh</button>
+<div class="d-flex flex-row m-5">
+
+
+    @foreach (var stream in StreamConfigDb.FindAll())
+    {
+        var streamActive = VideoProcessing.Feedback.TryGetValue(stream.StreamName, out var feedback);
+        <div class="card" style="width: 18rem;">
+            <img src="@GetImageSrc(feedback?.DebugImage)" class="card-img-top"
+                 alt="...">
+            <div class="card-body">
+                <h5 class="card-title">@stream.StreamName</h5>
+
+                @if (streamActive)
+                {
+                    @* <a href="#" class="btn btn-primary">Go somewhere</a> *@
+                    <p class="card-text">ProcessTime: @feedback.FrameProcessTime.TotalMilliseconds</p>
+                    <p class="card-text">Mean: @feedback.Mean</p>
+                    <p class="card-text">Time: @feedback.Time</p>
+                    <p class="card-text">Time Diff @(DateTime.UtcNow - feedback.Time) </p>
+                }
+                else
+                {
+                    <p class="card-text">Stream is not active, might be starting?</p>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@code
+{
+    private string GetImageSrc(byte[] bytes)
+    {
+        if (bytes is null)
+        {
+            bytes = [0];
+        }
+
+        var base64 = Convert.ToBase64String(bytes);
+        return $"data:image/jpeg;base64,{base64}";
+    }
+
+
+    [Parameter, SupplyParameterFromQuery] public int? StartTime { get; set; }
+
+    string src;
+    string start;
+
+    int TotalProcessTime = 0;
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        Console.WriteLine(StartTime);
+
+        var dto = DateTimeOffset.Now - TimeSpan.FromSeconds(60);
+
+        start = HttpUtility.UrlEncode(dto.ToString("yyyy-MM-dd'T'HH:mm:ss.fffK", CultureInfo.InvariantCulture));
+        src = $"http://localhost:9996/get?path=test&start={start}&duration=30";
+    }
+
+    private void ForceRefresh()
+    {
+        StateHasChanged();
+    }
+}
