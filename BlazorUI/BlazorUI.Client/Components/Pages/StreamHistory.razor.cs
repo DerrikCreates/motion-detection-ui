@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Text.Json;
 using System.Timers;
 using System.Web;
 using BlazorUI.Hubs;
@@ -34,6 +35,7 @@ public class StreamHistoryBase : ComponentBase, IHistoryClientHub
 
         _connection = new HubConnectionBuilder()
             .WithUrl("http://localhost:5174/historyhub")
+            .AddMessagePackProtocol()
             .Build();
 
         await _connection.StartAsync();
@@ -62,17 +64,20 @@ public class StreamHistoryBase : ComponentBase, IHistoryClientHub
                         {
                             return;
                         }
+
                         var point = signalXy.Data.GetNearestX(cord, Plot.Plot.LastRender, 100);
 
                         if (point.IsReal)
                         {
                             var clickTime = DateTime.FromOADate(point.X);
-                           Console.WriteLine($"local { clickTime.ToLocalTime()}, utc, {clickTime.ToUniversalTime()}"); 
+                            Console.WriteLine($"local {clickTime.ToLocalTime()}, utc, {clickTime.ToUniversalTime()}");
                             _videoPlaybackUrl = "";
                             StateHasChanged();
                             _videoPlaybackUrl = MediaMtxHelpers.MediaMtxPlaybackUrl("100.125.94.97:9996",
-                                "gerbil-top", clickTime, 60);}
-                            StateHasChanged();
+                                "gerbil-top", clickTime, 60);
+                        }
+
+                        StateHasChanged();
                     });
 
             Plot.UserInputProcessor.UserActionResponses.Add(clickResponse);
@@ -93,14 +98,15 @@ public class StreamHistoryBase : ComponentBase, IHistoryClientHub
         Console.WriteLine(p);
     }
 
-    public Task OnDataSince(MotionHistory[] History)
+    public Task OnDataSince(List<MotionHistory> history)
     {
+        //var history = JsonSerializer.Deserialize<History>(historyJson);
         Stopwatch sw = new();
         sw.Start();
-        Console.WriteLine($"OnDataSince:: {History.Length}");
+        Console.WriteLine($"OnDataSince:: {history.Count}");
 
-        var data = History.Select(x => x.MotionAmount).ToArray();
-        var time = History.Select(x => x.MotionTime.ToLocalTime()).ToArray();
+        var data = history.Select(x => x.MotionAmount).ToArray();
+        var time = history.Select(x => x.MotionTime.ToLocalTime()).ToArray();
 
         Plot.Plot.Clear();
 

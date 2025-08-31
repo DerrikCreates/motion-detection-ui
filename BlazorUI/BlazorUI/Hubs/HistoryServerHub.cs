@@ -1,5 +1,3 @@
-using System.Runtime.InteropServices.JavaScript;
-using BlazorUI.Components.Pages;
 using LiteDB;
 using Microsoft.AspNetCore.SignalR;
 
@@ -20,8 +18,11 @@ public class HistoryServerHub : Hub<IHistoryClientHub>, IHistoryServerHub
             .Find(x => x.StreamName.Equals(streamName, StringComparison.InvariantCultureIgnoreCase))
             .Where(x => x.MotionTime.ToUniversalTime() >= since.ToUniversalTime())
             .OrderBy(x => x.MotionTime)
-            .ToArray();
-        Console.WriteLine($"SERVER GET DATA, {streamName}:{since}, local:{since.ToLocalTime()} entries requested: {data.Length}");
+            .ToList();
+        Console.WriteLine(
+            $"SERVER GET DATA, {streamName}:{since}, local:{since.ToLocalTime()} entries requested: {data.Count}");
+
+        //var json = System.Text.Json.JsonSerializer.Serialize(new History() { MotionHistory = data });
 
         await Clients.Caller.OnDataSince(data);
     }

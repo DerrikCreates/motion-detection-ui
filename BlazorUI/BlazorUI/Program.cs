@@ -12,7 +12,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents()
     .AddInteractiveWebAssemblyComponents();
-builder.Services.AddSignalR();
+builder.Services.AddSignalR().AddMessagePackProtocol();
 
 var database = new LiteDatabase("./motion-detection.db");
 var historyCol = database.GetCollection<MotionHistory>();
