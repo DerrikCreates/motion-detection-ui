@@ -1,5 +1,7 @@
+using BlazorUI.Client.Components.Pages;
 using BlazorUI.Components;
 using BlazorUI.Components.Pages;
+using BlazorUI.Hubs;
 using Emgu.CV;
 using LiteDB;
 
@@ -9,6 +11,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents()
     .AddInteractiveWebAssemblyComponents();
+builder.Services.AddSignalR();
 
 var database = new LiteDatabase("./motion-detection.db");
 var historyCol = database.GetCollection<MotionHistory>();
@@ -30,8 +33,9 @@ foreach (var stream in streamsCol.FindAll())
             historyCol);
     });
 }
-var app = builder.Build();
 
+var app = builder.Build();
+app.MapHub<HistoryServerHub>("/historyhub");
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
@@ -41,7 +45,6 @@ else
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
 }
-
 
 app.UseAntiforgery();
 

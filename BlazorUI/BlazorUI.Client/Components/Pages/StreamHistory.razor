@@ -1,0 +1,20 @@
+@page "/StreamHistory"
+@using ScottPlot.Blazor
+@inherits StreamHistoryBase
+@rendermode @(new InteractiveWebAssemblyRenderMode(false))
+
+<h3>StreamHistory</h3>
+
+<button @onclick="test"></button>
+
+<BlazorPlot @ref="plot" Style="width: 400px; height: 300px;"></BlazorPlot>
+
+@code {
+
+
+    protected override void OnInitialized()
+    {
+    }
+
+
+} 
