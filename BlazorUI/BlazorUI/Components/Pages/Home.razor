@@ -2,6 +2,7 @@
 @using System.ComponentModel.DataAnnotations
 @using Emgu.CV
 @using LiteDB
+@using VideoProcessing
 @using MotionHistory = MotionHistory
 @rendermode InteractiveServer
 @inject ILiteCollection<StreamConfig> StreamConfigDb;
@@ -56,17 +57,6 @@ Welcome to your new app.
     {
     }
 
-    public class StreamConfig
-    {
-        [Required] public string StreamName { get; set; }
-        [Required] public string StreamUrl { get; set; } = "rtsp://100.125.94.97:8554/gerbil-top";
-        [Required] public int FramesToSkip { get; set; } = 60;
-        [Required] public int MOGHistory { get; set; } = 100;
-
-        [Required] public int MOGThreshold { get; set; } = 100;
-        [Required] public int ThresholdMin { get; set; } = 220;
-        public int ThresholdMax { get; set; } = 255;
-    }
 
     private void OnValidSubmit()
     {
@@ -76,7 +66,7 @@ Welcome to your new app.
         Task.Run(() =>
         {
             var capture = new VideoCapture(Model.StreamUrl, VideoCapture.API.Ffmpeg);
-            return VideoProcessing.StreamMotionDetectionCUDA(capture, Model.StreamName, Model.FramesToSkip, new CancellationToken(), Model.MOGHistory, Model.MOGThreshold, Model.ThresholdMin, Model.ThresholdMax,HistoryDb);
+            return VideoProcessor.StreamMotionDetectionCUDA(capture, Model, new CancellationToken(), collection: HistoryDb);
         });
     }
 

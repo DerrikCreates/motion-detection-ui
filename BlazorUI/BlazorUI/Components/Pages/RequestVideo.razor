@@ -1,9 +1,10 @@
 @page "/RequestVideo"
 @using System.Globalization
 @using System.Web
+@using VideoProcessing
 @using LiteDB
 @rendermode InteractiveServer
-@inject ILiteCollection<Home.StreamConfig> StreamConfigDb;
+@inject ILiteCollection<StreamConfig> StreamConfigDb;
 
 <p>@start</p>
 <p>@src</p>
@@ -17,7 +18,7 @@
 
     @foreach (var stream in StreamConfigDb.FindAll())
     {
-        var streamActive = VideoProcessing.Feedback.TryGetValue(stream.StreamName, out var feedback);
+        var streamActive = VideoProcessor.Feedback.TryGetValue(stream.StreamName, out var feedback);
         <div class="card" style="width: 18rem;">
             <img src="@GetImageSrc(feedback?.DebugImage)" class="card-img-top"
                  alt="...">
@@ -66,12 +67,10 @@
     {
         base.OnInitialized();
         Console.WriteLine(StartTime);
-
-        var dto = DateTimeOffset.Now - TimeSpan.FromSeconds(60);
-
-        start = HttpUtility.UrlEncode(dto.ToString("yyyy-MM-dd'T'HH:mm:ss.fffK", CultureInfo.InvariantCulture));
-        src = $"http://localhost:9996/get?path=test&start={start}&duration=30";
     }
+
+
+    
 
     private void ForceRefresh()
     {

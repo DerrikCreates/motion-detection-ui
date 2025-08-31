@@ -18,8 +18,11 @@ public class HistoryServerHub : Hub<IHistoryClientHub>, IHistoryServerHub
     {
         var data = _db
             .Find(x => x.StreamName.Equals(streamName, StringComparison.InvariantCultureIgnoreCase))
+            .Where(x => x.MotionTime.ToUniversalTime() >= since.ToUniversalTime())
             .OrderBy(x => x.MotionTime)
             .ToArray();
+        Console.WriteLine($"SERVER GET DATA, {streamName}:{since}, local:{since.ToLocalTime()} entries requested: {data.Length}");
+
         await Clients.Caller.OnDataSince(data);
     }
 }

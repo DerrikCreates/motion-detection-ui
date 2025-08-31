@@ -3,6 +3,7 @@
 using CommandLine;
 using Emgu.CV;
 using MotionCLI;
+using VideoProcessing;
 
 
 Parser.Default.ParseArguments<Options>(args).WithParsed(OnParsed);
@@ -14,13 +15,10 @@ void OnParsed(Options options)
 
     if (options.UseGPU)
     {
-        
-        Task.Run(()=>VideoProcessing.StreamMotionDetectionCUDA(capture,"test", options.FramesToSkip, ctx));
+        //Task.Run(() => VideoProcessor.StreamMotionDetectionCUDA(capture, new StreamConfig(), ctx));
     }
     else
     {
-        
-        Task.Run(()=>VideoProcessing.StreamMotionDetection(capture, options.FramesToSkip, ctx));
     }
 }
 

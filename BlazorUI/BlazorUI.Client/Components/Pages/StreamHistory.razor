@@ -1,20 +1,31 @@
 @page "/StreamHistory"
 @using ScottPlot.Blazor
 @inherits StreamHistoryBase
-@rendermode @(new InteractiveWebAssemblyRenderMode(false))
-
-<h3>StreamHistory</h3>
-
-<button @onclick="test"></button>
-
-<BlazorPlot @ref="plot" Style="width: 400px; height: 300px;"></BlazorPlot>
 
 @code {
 
+}
 
-    protected override void OnInitialized()
-    {
-    }
+@rendermode @(new InteractiveWebAssemblyRenderMode(false))
 
+<h3>StreamHistory</h3>
+<div class="mb-3">
+    <label>History in minutes</label>
+    <InputNumber class="form-control" @bind-Value="History"/>
+</div>
+<div class="mb-3">
+    <label>Stream</label>
+    <select id="condition">
+        <option value="0">Servers</option>
+        <option value="1">Owner</option>
+        <option value="2">DataBases</option>
+    </select>
+</div>
+<button @onclick="RefreshData">Refresh Data</button>
 
-} 
+<BlazorPlot @ref="Plot" Style="width: 400px; height: 300px;"></BlazorPlot>
+
+@if (!string.IsNullOrWhiteSpace(_videoPlaybackUrl))
+{
+    <iframe src="@_videoPlaybackUrl" width="640" height="360" allow="autoplay; fullscreen"></iframe>
+}

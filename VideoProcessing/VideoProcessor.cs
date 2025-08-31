@@ -7,6 +7,7 @@ using Emgu.CV.CvEnum;
 using Emgu.CV.Structure;
 using Emgu.CV.Util;
 using LiteDB;
+using VideoProcessing;
 
 public class StreamFeedback
 {
@@ -23,7 +24,7 @@ public class MotionHistory
     public double MotionAmount { get; set; }
 }
 
-public class VideoProcessing
+public class VideoProcessor
 {
     private static LiteDatabase motionDB = new LiteDatabase("./motion-history.db");
 
@@ -46,99 +47,27 @@ public class VideoProcessing
     /// <param name="threshMin">CV threshold min</param>
     /// <param name="threshMax">CV threshold max</param>
     /// <param name="areaSize"> min size of contour area for it to be considered motion</param>
-    public static async Task StreamMotionDetection(VideoCapture capture, int skipFrames,
-        CancellationToken cancellationToken, int mogHistory = 20, int mogThreshold = 100, int threshMin = 220,
-        int threshMax = 255, int areaSize = 40)
-    {
-        Stopwatch sw = new();
-        using var subtractor = new BackgroundSubtractorMOG2(history: mogHistory, varThreshold: mogThreshold);
-        using Mat currentFrame = new();
-        using Mat mask = new();
-        using Mat threshold = new();
-        using var contours = new VectorOfVectorOfPoint();
 
-
-        // using  var capture = new VideoCapture("V:\\_projects\\Lumi\\celestialcrittercams\\shorts\\pluto-zoomies.mov");
-
-        int lastProcess = 0;
-        while (true)
-        {
-            Console.WriteLine("--Loop--");
-            if (cancellationToken.IsCancellationRequested)
-            {
-                return;
-            }
-
-            if (capture.IsOpened == false)
-            {
-                Console.WriteLine("failed to open stream");
-                return;
-            }
-
-            sw.Restart();
-            if (capture.Grab() && lastProcess > skipFrames)
-            {
-                capture.Retrieve(currentFrame);
-                lastProcess = 0;
-                Console.WriteLine("Processing frame");
-            }
-            else
-            {
-                lastProcess++;
-                Console.WriteLine($"Skipping frame frames skipped: {lastProcess}");
-                continue;
-            }
-
-            if (currentFrame.IsEmpty)
-            {
-                continue;
-            }
-
-            subtractor.Apply(currentFrame, mask);
-            contours.Clear();
-            CvInvoke.Threshold(mask, threshold, threshMin, threshMax, ThresholdType.Binary);
-
-            CvInvoke.FindContours(threshold, contours, null, RetrType.External, ChainApproxMethod.ChainApproxSimple);
-
-            int largeAreas = 0;
-            for (int i = 0; i < contours.Size; i++)
-            {
-                var contour = contours[i];
-
-                if (CvInvoke.ContourArea(contour) > areaSize)
-                {
-                    largeAreas++;
-                    //  var rect = CvInvoke.BoundingRectangle(contours[i]);
-                    // CvInvoke.Rectangle(currentFrame, rect, new MCvScalar(0, 0, 255), thickness: 3);
-                }
-            }
-
-            sw.Stop();
-            Console.WriteLine($"Process Time:{sw.ElapsedMilliseconds} Motion Areas: {largeAreas}");
-        }
-    }
-
-    
     //TODO: make this take the StreamConfig type for params since im already using it for the db
-    public static async Task StreamMotionDetectionCUDA(VideoCapture capture, string streamName, int skipFrames,
-        CancellationToken cancellationToken, int mogHistory = 100, int mogThreshold = 100, int threshMin = 100,
-        int threshMax = 255, ILiteCollection<MotionHistory>? collection = null)
+    public static async Task StreamMotionDetectionCUDA(VideoCapture capture, StreamConfig config,
+        CancellationToken cancellationToken, ILiteCollection<MotionHistory>? collection = null)
     {
         Console.WriteLine("Starting CUDA motion detection");
-        if (Streams.TryGetValue(streamName, out var value))
+        if (Streams.TryGetValue(config.StreamName, out var value))
         {
-            Console.WriteLine($"motion detection stream {streamName} already exists returning");
+            Console.WriteLine($"motion detection stream {config.StreamName} already exists returning");
             // this stream already exists
             // maybe destroy?
             return;
         }
         else
         {
-            Streams.TryAdd(streamName, cancellationToken);
+            Streams.TryAdd(config.StreamName, cancellationToken);
         }
 
         Stopwatch sw = new();
-        using var subtractor = new CudaBackgroundSubtractorMOG2(history: mogHistory, varThreshold: mogThreshold);
+        using var subtractor =
+            new CudaBackgroundSubtractorMOG2(history: config.MOGHistory, varThreshold: config.MOGThreshold);
 
 
         using Mat currentFrame = new();
@@ -164,8 +93,8 @@ public class VideoProcessing
         {
             if (cancellationToken.IsCancellationRequested)
             {
-                Streams.TryRemove(streamName, out _);
-                Console.WriteLine($"motion detection stream: {streamName} has been cancelled");
+                Streams.TryRemove(config.StreamName, out _);
+                Console.WriteLine($"motion detection stream: {config.StreamName} has been cancelled");
                 return;
             }
 
@@ -175,10 +104,9 @@ public class VideoProcessing
                 return;
             }
 
-            sw.Restart();
             if (capture.Grab())
             {
-                if (lastProcess > skipFrames)
+                if (lastProcess > config.FramesToSkip)
                 {
                     capture.Retrieve(currentFrame);
                     lastProcess = 0;
@@ -201,15 +129,15 @@ public class VideoProcessing
 
             startTime = DateTime.UtcNow;
 
-
+            sw.Restart();
             cudaFrame.Upload(currentFrame);
 
             //CudaInvoke.CvtColor(cudaFrame, cudaGray, ColorConversion.Bgr2Gray);
-            Size size = new(currentFrame.Width / 2, currentFrame.Height / 2);
+            Size size = new(currentFrame.Width / 4, currentFrame.Height / 4);
             CudaInvoke.Resize(cudaFrame, cudaFrameSmall, size);
             subtractor.Apply(cudaFrameSmall, cudaMask);
             contours.Clear();
-            CudaInvoke.Threshold(cudaMask, cudaThresh, threshMin, threshMax, ThresholdType.Binary);
+            CudaInvoke.Threshold(cudaMask, cudaThresh, config.ThresholdMin, config.ThresholdMax, ThresholdType.Binary);
             cudaThresh.Download(threshold);
             cudaFrameSmall.Download(currentFrameSmall);
 
@@ -220,12 +148,12 @@ public class VideoProcessing
 
             collection?.Insert(new MotionHistory()
             {
-                MotionAmount = mean.V0, MotionTime = DateTime.UtcNow, StreamName = streamName
+                MotionAmount = mean.V0, MotionTime = DateTime.UtcNow, StreamName = config.StreamName
             });
 
 
             sw.Stop();
-            if (Feedback.TryGetValue(streamName, out var feedback))
+            if (Feedback.TryGetValue(config.StreamName, out var feedback))
             {
                 feedback.Time = startTime;
                 feedback.Mean = mean.V0;
@@ -240,7 +168,7 @@ public class VideoProcessing
                 newFB.DebugImage = image;
                 newFB.FrameProcessTime = sw.Elapsed;
 
-                Feedback.TryAdd(streamName, newFB);
+                Feedback.TryAdd(config.StreamName, newFB);
             }
 
 

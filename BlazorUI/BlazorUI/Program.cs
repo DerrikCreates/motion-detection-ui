@@ -4,6 +4,7 @@ using BlazorUI.Components.Pages;
 using BlazorUI.Hubs;
 using Emgu.CV;
 using LiteDB;
+using VideoProcessing;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,7 +16,7 @@ builder.Services.AddSignalR();
 
 var database = new LiteDatabase("./motion-detection.db");
 var historyCol = database.GetCollection<MotionHistory>();
-var streamsCol = database.GetCollection<Home.StreamConfig>();
+var streamsCol = database.GetCollection<StreamConfig>();
 builder.Services.AddSingleton(historyCol);
 builder.Services.AddSingleton(streamsCol);
 
@@ -28,9 +29,8 @@ foreach (var stream in streamsCol.FindAll())
     Task.Run(() =>
     {
         var capture = new VideoCapture(stream.StreamUrl, VideoCapture.API.Ffmpeg);
-        return VideoProcessing.StreamMotionDetectionCUDA(capture, stream.StreamName, stream.FramesToSkip,
-            new CancellationToken(), stream.MOGHistory, stream.MOGThreshold, stream.ThresholdMin, stream.ThresholdMax,
-            historyCol);
+        return VideoProcessor.StreamMotionDetectionCUDA(capture, stream, new CancellationToken(),
+            collection: historyCol);
     });
 }
 
