@@ -1,7 +1,10 @@
 using System.Diagnostics;
+using System.Net.Http.Json;
 using System.Text.Json;
 using System.Timers;
 using System.Web;
+using Blazored.Video;
+using Blazored.Video.Support;
 using BlazorUI.Hubs;
 using BlazorUI.Shared;
 using Microsoft.AspNetCore.Components;
@@ -18,7 +21,7 @@ namespace BlazorUI.Client.Components.Pages;
 public class StreamHistoryBase : ComponentBase, IHistoryClientHub
 {
     public int History { get; set; } = 5;
-    protected string _streamName;
+    protected string _streamName ="gerbil-top";
     protected HubConnection _connection;
     protected IHistoryServerHub _hubProxy;
     protected string _videoPlaybackUrl;
@@ -26,13 +29,15 @@ public class StreamHistoryBase : ComponentBase, IHistoryClientHub
     Timer _timer = new();
     private List<double> data = new();
     [Inject] private NavigationManager NavigationManager { get; set; }
+    public BlazoredVideo VideoPlayer { get; set; }
+
 
 
     protected override async Task OnInitializedAsync()
     {
         base.OnInitialized();
 
-
+        return;
         _connection = new HubConnectionBuilder()
             .WithUrl("http://localhost:5174/historyhub")
             .AddMessagePackProtocol()
@@ -73,8 +78,11 @@ public class StreamHistoryBase : ComponentBase, IHistoryClientHub
                             Console.WriteLine($"local {clickTime.ToLocalTime()}, utc, {clickTime.ToUniversalTime()}");
                             _videoPlaybackUrl = "";
                             StateHasChanged();
-                            _videoPlaybackUrl = MediaMtxHelpers.MediaMtxPlaybackUrl("100.125.94.97:9996",
+                            var videoSrc  = MediaMtxHelpers.MediaMtxPlaybackUrl("100.125.94.97:9996",
                                 "gerbil-top", clickTime, 60);
+
+                            VideoPlayer.SetSrcAsync(videoSrc);
+                            
                         }
 
                         StateHasChanged();
@@ -84,11 +92,28 @@ public class StreamHistoryBase : ComponentBase, IHistoryClientHub
         }
     }
 
-    protected void RefreshData()
+    protected async Task RefreshData()
     {
         var start = DateTime.UtcNow - TimeSpan.FromMinutes(History);
         Console.WriteLine($"Getting data starting from {start} to now:{DateTime.UtcNow}");
-        _hubProxy.GetDataSince("gerbil-top", start);
+        //_hubProxy.GetDataSince("gerbil-top", start);
+
+        HttpClient client = new();
+
+        var response = await client.SendAsync(new HttpRequestMessage(HttpMethod.Get,
+            NavigationManager.BaseUri + $"history/{_streamName}/{History}"));
+
+        if (!response.IsSuccessStatusCode)
+        {
+            return;
+        }
+        var json = await response.Content.ReadAsStringAsync();
+        var data = JsonSerializer.Deserialize<MotionHistoryRequest>(json);
+        if (data is null)
+        {
+            return;
+        }
+        UpdateGraph(data.History);
     }
 
     protected void OnPlotClick(MouseEventArgs m)
@@ -118,5 +143,28 @@ public class StreamHistoryBase : ComponentBase, IHistoryClientHub
         Console.WriteLine(sw.ElapsedMilliseconds);
 
         return Task.CompletedTask;
+    }
+
+    protected void UpdateGraph(MotionHistory[] history)
+    {
+        
+        //var history = JsonSerializer.Deserialize<History>(historyJson);
+        Stopwatch sw = new();
+        sw.Start();
+        Console.WriteLine($"OnDataSince:: {history.Length}");
+
+        var data = history.Select(x => x.MotionAmount).ToArray();
+        var time = history.Select(x => x.MotionTime.ToLocalTime()).ToArray();
+
+        Plot.Plot.Clear();
+
+        Plot.Plot.Add.SignalXY(time, data);
+        //Plot.Plot.Add.Scatter(time, data);
+        Plot.Plot.Axes.DateTimeTicksBottom();
+        Plot.Plot.Axes.AutoScale();
+        Plot.Refresh();
+        sw.Stop();
+        Console.WriteLine(sw.ElapsedMilliseconds);
+
     }
 }

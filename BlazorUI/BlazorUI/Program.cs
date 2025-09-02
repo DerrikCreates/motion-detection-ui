@@ -2,9 +2,11 @@ using BlazorUI.Client.Components.Pages;
 using BlazorUI.Components;
 using BlazorUI.Components.Pages;
 using BlazorUI.Hubs;
+using BlazorUI.Shared;
 using Emgu.CV;
 using LiteDB;
 using VideoProcessing;
+using JsonSerializer = System.Text.Json.JsonSerializer;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -36,6 +38,17 @@ foreach (var stream in streamsCol.FindAll())
 
 var app = builder.Build();
 app.MapHub<HistoryServerHub>("/historyhub");
+
+app.MapGet("/history/{stream}/{history}", (string stream, int history) =>
+{
+    var oldest = DateTime.UtcNow - TimeSpan.FromMinutes(history);
+    var data = historyCol
+        .Find(x => x.StreamName.Equals(stream, StringComparison.InvariantCultureIgnoreCase))
+        .Where(x => x.MotionTime.ToUniversalTime() > oldest.ToUniversalTime())
+        .OrderBy(x => x.MotionTime).ToArray();
+
+    return Results.Text(JsonSerializer.Serialize(new MotionHistoryRequest(){History = data}));
+});
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
